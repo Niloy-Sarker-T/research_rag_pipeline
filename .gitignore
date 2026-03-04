@@ -1,0 +1,7 @@
+venv/
+research_rag/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
