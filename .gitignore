@@ -1,7 +1,7 @@
 venv/
 research_rag/venv/
+*.dll
+*.lib
+*.pt
+*.bin
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.env
