@@ -223,7 +223,7 @@ embedded_chunks = embed_chunks_advanced(chunks, batch_size=32)
 print(f"Generated embeddings for {len(embedded_chunks)} chunks")
 
 # Step 4: Store in vector database and enable retrieval
-# (Integrate with Pinecone, Chromadb, Weaviate, etc.)
+# (Integrated with qdrant)
 ```
 
 ---
@@ -245,17 +245,8 @@ print(f"Generated embeddings for {len(embedded_chunks)} chunks")
 
 ---
 
-## Vector Database Integration
 
-This system is designed to work with popular vector databases:
 
-- **Pinecone**: Cloud-native vector database
-- **Chromadb**: Lightweight in-memory vector database
-- **Weaviate**: GraphQL-based vector database
-- **Milvus**: Open-source vector database
-- **Qdrant**: Vector similarity search engine
-
-Store embeddings and metadata from the chunking pipeline into any of these systems for efficient similarity search.
 
 ---
 
@@ -282,16 +273,7 @@ Store embeddings and metadata from the chunking pipeline into any of these syste
 
 ---
 
-## Future Enhancements
 
-- [ ] Integration with LLM for answer generation
-- [ ] Support for multi-language documents
-- [ ] Advanced section detection with NLP
-- [ ] Query expansion and reranking
-- [ ] Hybrid search (dense + sparse retrieval)
-- [ ] Caching and indexing optimization
-- [ ] Support for tables and figures extraction
-- [ ] Web UI for document upload and querying
 
 ---
 
