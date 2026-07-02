@@ -1,293 +1,270 @@
-# Multiple PDF Research Assistant RAG Application
+# Research Paper RAG Assistant
 
-A sophisticated Retrieval-Augmented Generation (RAG) system designed for intelligent research paper analysis and question-answering across multiple PDF documents.
+A Retrieval-Augmented Generation (RAG) application for semantic question answering over research papers. The system extracts text from PDFs, generates semantic embeddings, stores them in Qdrant, and retrieves relevant context to generate answers using a local LLM through Ollama.
 
 ---
 
-## Overview
+## Features
 
-This application is built to extract, process, and intelligently retrieve information from multiple research papers using semantic embeddings and advanced text chunking. It enables researchers to query across multiple PDF documents and get contextually relevant answers powered by embeddings-based retrieval.
+- 📄 PDF text extraction with page preservation
+- ✂️ Section-aware text chunking
+- 🧠 Semantic embeddings using `all-MiniLM-L6-v2`
+- ⚡ Batch embedding generation
+- 🔍 Vector search with Qdrant
+- 🤖 Local LLM inference using Ollama
+- 🌐 REST API built with FastAPI
+- 📌 Metadata preservation (page number, section, chunk ID)
 
 ---
 
 ## Technology Stack
 
-### Core Libraries
+| Component | Technology |
+|-----------|------------|
+| API | FastAPI |
+| PDF Processing | pdfplumber |
+| Embeddings | Sentence-Transformers (`all-MiniLM-L6-v2`) |
+| Vector Database | Qdrant |
+| LLM | Ollama (Llama 3/Mistral/Gemma) |
+| Deep Learning | PyTorch |
 
-| Technology | Version | Purpose |
-|---|---|---|
-| **Python** | 3.8+ | Programming language |
-| **PyTorch (torch)** | Latest | Deep learning framework for embeddings and models |
-| **pdfplumber** | Latest | PDF text extraction and parsing |
-| **sentence-transformers** | Latest | Semantic embeddings generation |
-| **NumPy** | Latest | Numerical computation and array operations |
-
-### Key Models & Services
-
-- **Embedding Model**: `all-MiniLM-L6-v2` (Sentence Transformers)
-  - Lightweight, fast, and efficient embeddings
-  - 384-dimensional vectors
-  - Suitable for similarity search and semantic retrieval
-  
 ---
 
-## Architecture
+## Project Structure
 
-### Project Structure
-
-```
+```text
 research_rag/
-├── core/
-│   ├── pdf_loader.py      # PDF extraction module
-│   ├── chunking.py        # Text chunking with section detection
-│   ├── embeddings.py      # Semantic embedding generation
-│   └── dummy.py           # GPU configuration test
-└── core_backup/
-    └── pdf_loader.py      # Backup of PDF loader
+│
+├── main.py                # FastAPI application
+├── pdf_loader.py          # PDF text extraction
+├── chunking.py            # Intelligent chunking
+├── embeddings.py          # Embedding generation
+├── qdrant_db.py           # Vector database operations
+├── ollama_client.py       # Ollama API client
+└── requirements.txt
+```
+
+---
+
+## Pipeline
+
+```text
+               OFFLINE
+
+PDF
+ │
+ ▼
+PDF Extraction
+ │
+ ▼
+Section-aware Chunking
+ │
+ ▼
+Sentence Embeddings
+ │
+ ▼
+Qdrant Vector Store
+
+────────────────────────────────────
+
+                ONLINE
+
+User Question
+ │
+ ▼
+FastAPI
+ │
+ ▼
+Question Embedding
+ │
+ ▼
+Qdrant Similarity Search
+ │
+ ▼
+Retrieve Top-k Chunks
+ │
+ ▼
+Prompt Construction
+ │
+ ▼
+Ollama
+ │
+ ▼
+Generated Answer
 ```
 
 ---
 
 ## Core Components
 
-### 1. **PDF Loader** (`pdf_loader.py`)
+### PDF Loader
 
-**Functionality**: Extracts text from PDF documents page-by-page.
+- Extracts text page by page using `pdfplumber`
+- Preserves page numbers for traceability
 
-**Features**:
-- Page-level text extraction using `pdfplumber`
-- Preserve page numbering for document tracking
-- Handles multiple PDF files
-- Returns structured data with page metadata
-
-**Input**: PDF file path  
-**Output**: List of dictionaries containing `page_number` and `text`
+Output
 
 ```python
 {
     "page_number": 1,
-    "text": "extracted text content..."
+    "text": "..."
 }
 ```
 
-### 2. **Text Chunking** (`chunking.py`)
+---
 
-**Functionality**: Intelligently segments extracted text into manageable chunks with section awareness.
+### Chunking
 
-**Features**:
-- **Section Detection**: Automatically identifies research paper sections
-  - Abstract, Introduction, Method, Results, Discussion, Conclusion
-- **Configurable Chunk Size**: Default 800 characters per chunk
-- **Metadata Preservation**:
-  - Chunk ID
-  - Section name
-  - Page number
-  - Text content
-- **Boundary-Aware Chunking**: Respects section boundaries
+- Detects research paper sections using regex
+- Splits text into ~800-character chunks
+- Preserves metadata
 
-**Input**: List of page dictionaries  
-**Output**: List of chunk objects with metadata
+Output
 
 ```python
 {
     "chunk_id": 1,
     "section": "Introduction",
     "page_number": 2,
-    "text": "chunk text..."
+    "text": "..."
 }
 ```
 
-### 3. **Embeddings Generation** (`embeddings.py`)
+---
 
-**Functionality**: Generates semantic embeddings for chunked text using pre-trained transformer models.
+### Embeddings
 
-**Features**:
-- **Batch Processing**: Efficiently handles large datasets
-  - Configurable batch size (default: 32)
-  - Progress tracking during encoding
-- **Model**: Sentence Transformers (`all-MiniLM-L6-v2`)
-- **GPU Control**: CPU-only mode for compatibility
-  - Disabled via `CUDA_VISIBLE_DEVICES = "-1"`
-- **Vector Output**: NumPy arrays (384-dimensional)
-- **Metadata Attachment**: Preserves chunk metadata with embeddings
+- Uses `all-MiniLM-L6-v2`
+- Produces 384-dimensional embeddings
+- Supports configurable batch processing
 
-**Input**: List of chunk dictionaries  
-**Output**: List of embedded chunks with full metadata
+Output
 
 ```python
 {
     "chunk_id": 1,
     "section": "Introduction",
     "page_number": 2,
-    "text": "chunk text...",
-    "embedding": np.array([...])  # 384-dimensional vector
+    "text": "...",
+    "embedding": np.array(...)
 }
 ```
 
 ---
 
-## Data Flow Pipeline
+### Qdrant
 
-```
-PDF Files
-    ↓
-[PDF Loader]
-    ↓
-Pages with Text
-    ↓
-[Text Chunking]
-    ↓
-Chunks with Metadata & Section
-    ↓
-[Embeddings Generation]
-    ↓
-Semantic Vector Embeddings
-    ↓
-Vector Database / Retrieval System
-    ↓
-Query Processing & RAG
-```
+Stores:
+
+- Embedding vectors
+- Chunk text
+- Page number
+- Section
+- Chunk metadata
+
+Used for semantic similarity search during retrieval.
 
 ---
 
-## Key Features
+### Ollama
 
-### ✨ Section-Aware Processing
-- Automatically detects standard research paper sections
-- Groups related content together
-- Preserves document structure
+Receives the prompt containing:
 
-### ⚡ Batch Processing
-- Efficient embedding generation for large datasets
-- Configurable batch sizes for memory optimization
-- Progress tracking during processing
+- Retrieved context
+- User question
 
-### 📄 Document Tracking
-- Page numbers preserved throughout pipeline
-- Source attribution for retrieved chunks
-- Full auditability of retrieved information
-
-### 🔍 Semantic Retrieval Ready
-- Embeddings enable similarity-based search
-- Support for various embedding-based retrieval methods
-- Compatible with vector databases (Pinecone, Weaviate, Chroma, etc.)
+Returns the generated answer using a locally running LLM.
 
 ---
 
-## Installation & Setup
+## API Endpoints
 
-### Prerequisites
-```bash
-python >= 3.8
-pip
+### Upload PDF
+
+```http
+POST /upload
 ```
 
-### Install Dependencies
-```bash
-pip install pdfplumber sentence-transformers torch numpy
+Processes the uploaded PDF through:
+
+- Text extraction
+- Chunking
+- Embedding generation
+- Vector indexing in Qdrant
+
+---
+
+### Ask Question
+
+```http
+POST /ask
 ```
 
-### Optional: Requirements File
-Create a `requirements.txt` file:
-```
-pdfplumber>=0.9.0
-sentence-transformers>=2.2.0
-torch>=1.9.0
-numpy>=1.21.0
-```
+Workflow:
 
-Install from requirements:
+1. Embed user query
+2. Retrieve relevant chunks from Qdrant
+3. Construct prompt
+4. Send prompt to Ollama
+5. Return generated answer
+
+---
+
+## Design Principles
+
+- **Separation of Concerns** – Each module has a single responsibility.
+- **Pipeline Architecture** – Data flows through extraction, chunking, embedding, retrieval, and generation.
+- **Batch Processing** – Efficient embedding generation.
+- **Metadata Preservation** – Page number, section, and chunk ID remain available throughout the pipeline.
+- **Modular Design** – Components such as the embedding model, vector database, or LLM can be replaced independently.
+
+---
+
+## Installation
+
 ```bash
 pip install -r requirements.txt
 ```
 
----
+Run Qdrant:
 
-## Usage Example
+```bash
+docker run -p 6333:6333 qdrant/qdrant
+```
 
-```python
-from core.pdf_loader import extract_text_from_pdf
-from core.chunking import chunk_text
-from core.embeddings import embed_chunks_advanced
+Run Ollama:
 
-# Step 1: Extract text from PDF
-pages = extract_text_from_pdf("path/to/research_paper.pdf")
-print(f"Extracted {len(pages)} pages")
+```bash
+ollama serve
+ollama pull llama3
+```
 
-# Step 2: Chunk the text
-chunks = chunk_text(pages, max_chunk_size=800)
-print(f"Created {len(chunks)} chunks")
+Start the API:
 
-# Step 3: Generate embeddings
-embedded_chunks = embed_chunks_advanced(chunks, batch_size=32)
-print(f"Generated embeddings for {len(embedded_chunks)} chunks")
+```bash
+uvicorn main:app --reload
+```
 
-# Step 4: Store in vector database and enable retrieval
-# (Integrated with qdrant)
+Interactive API documentation:
+
+```
+http://localhost:8000/docs
 ```
 
 ---
 
-## Configuration Options
+## Future Improvements
 
-### Chunking Configuration
-| Parameter | Default | Purpose |
-|---|---|---|
-| `max_chunk_size` | 800 | Maximum characters per chunk |
-| Section Pattern | Regex | Detects: Abstract, Introduction, Method, Results, Discussion, Conclusion |
-
-### Embedding Configuration
-| Parameter | Default | Purpose |
-|---|---|---|
-| `batch_size` | 32 | Chunks processed per batch |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence transformers model |
-| `CUDA_VISIBLE_DEVICES` | `-1` | Disables GPU, uses CPU |
-
----
-
-
-
-
----
-
-## Performance Considerations
-
-### Optimization Tips
-1. **Batch Size**: Adjust based on available RAM
-   - Larger batches = faster but more memory
-   - Smaller batches = slower but lower memory
-
-2. **Model Selection**: `all-MiniLM-L6-v2` is optimized for:
-   - Fast inference
-   - Low memory footprint
-   - Reasonable semantic quality
-
-3. **GPU Usage**: 
-   - Currently configured for CPU-only
-   - Enable GPU by removing `CUDA_VISIBLE_DEVICES = "-1"` for faster processing
-
-### Scalability
-- Supports multiple PDF files
-- Handles large documents through chunking
-- Batch processing prevents memory overflow
-
----
-
-
+- Multi-PDF indexing
+- Hybrid retrieval (BM25 + Vector Search)
+- Cross-encoder reranking
+- OCR support for scanned PDFs
+- Figure and table retrieval
+- Citation-aware answers
+- Streaming responses
 
 ---
 
 ## License
 
-Specify your license here (MIT, Apache 2.0, etc.)
-
----
-
-## Contact & Contribution
-
-For questions, issues, or contributions, please refer to the project repository.
-
----
-
-**Last Updated**: March 2026  
-**Version**: 1.0.0
+MIT
